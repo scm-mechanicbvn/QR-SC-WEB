@@ -265,6 +265,7 @@
             // Khi bấm "Start" để quét mã QR
 // Khi bấm "Start" để quét mã QR
 startButton.addEventListener("click", () => {
+  clearJobAndAssetData();
   // Nếu có instance trước đó, dừng nó để tránh lỗi lặp lại
   if (scannerInstance) {
     scannerInstance.stop();
@@ -1127,4 +1128,5 @@ function cancelJob(data) {
     <button id="init-job-button">Khởi tạo công việc</button>
     <button id="end-job-button">Kết thúc công việc</button>
 </body>
+
 </html>
