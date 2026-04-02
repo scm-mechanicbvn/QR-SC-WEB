@@ -156,7 +156,25 @@
                 // Lưu ý: Logic cập nhật phanxuong-select từ dữ liệu Get trong code gốc
                 // không được triển khai lại vì phanXuongSelect giờ là text display.
             }
-
+            
+            // --- HÀM HỖ TRỢ: BẬT/TẮT TRẠNG THÁI LOADING ---
+            function toggleLoading(button, isLoading, textStr = "Đang tải...") {
+              const loader = button.querySelector(".loader");
+              const btnText = button.querySelector(".btn-text");
+            
+              if (isLoading) {
+                // Nếu đang load: Khóa nút, hiện vòng xoay, đổi chữ
+                button.dataset.originalText = btnText.innerText; // Lưu lại chữ gốc
+                loader.style.display = "inline-block";
+                btnText.innerText = textStr;
+                button.disabled = true;
+              } else {
+                // Nếu load xong: Mở khóa nút, ẩn vòng xoay, trả lại chữ gốc
+                loader.style.display = "none";
+                btnText.innerText = button.dataset.originalText;
+                button.disabled = false;
+              }
+            }
 
             // --- XỬ LÝ SỰ KIỆN CHO 3 NÚT TRÊN ĐẦU ---
             // Nút "Get Data": Khi nhấn sẽ gọi API cập nhật đường dẫn và cập nhật các dropdown:
@@ -282,7 +300,7 @@ startButton.addEventListener("click", () => {
       assetCodeEl.textContent = "Đang tải thông tin tài sản...";
       videoContainer.style.display = "none";
       scannerInstance.stop();
-
+    
       // Xóa trạng thái công việc hoàn thành của lần quét trước (nếu có)
       localStorage.removeItem("jobFinished");
 
@@ -352,6 +370,8 @@ function fetchAssetData(qrResult) {
 
   // Hiển thị trạng thái loading cho người dùng
   assetCodeEl.textContent = "Đang tải thông tin tài sản...";
+    // Bật loading
+  toggleLoading(startBtn, true, "Đang tải...");
 
   // Gửi POST request với định dạng x-www-form-urlencoded
   fetch(apiBaseUrl, {
@@ -363,9 +383,11 @@ function fetchAssetData(qrResult) {
   })
     .then(response => {
       if (!response.ok) throw new Error("Network response was not ok");
+        toggleLoading(startBtn, false);
       return response.json();
     })
     .then(data => {
+        toggleLoading(startBtn, false);
       console.log("Dữ liệu từ API:", data);
 
       // Kiểm tra trạng thái trả về từ API
@@ -435,6 +457,9 @@ initJobButton.addEventListener("click", () => {
         return;
     }
 
+    // Bật loading
+      toggleLoading(initJobBtn, true, "Đang khởi tạo...");
+    
     // Lấy giá trị từ dropdown sự cố
     let khuVuc = areaSelect.value;
     let viTriCuThe = locationSelect.value;
@@ -474,9 +499,14 @@ initJobButton.addEventListener("click", () => {
     .then(response => {
         if (!response.ok) throw new Error("Network response was not ok");
         initJobButton.disabled = false;
+        // Tắt loading khi xong
+        toggleLoading(initJobBtn, false);
+        
         return response.json();
     })
     .then(jobData => {
+        // Tắt loading khi xong
+        toggleLoading(initJobBtn, false);
         if (jobData.status === "success") {
             let currentTime = new Date().toLocaleString();
             startTimeEl.textContent = currentTime;
@@ -555,7 +585,6 @@ endJobButton.addEventListener("click", () => {
         endJobButton.disabled = false;
         return;
     }
-
     let idUser = userAppData.user.username;
     let tenNguoiDung = userAppData.user.name;
     let phanXuongVal = userAppData.user.local;
@@ -592,6 +621,8 @@ endJobButton.addEventListener("click", () => {
         return;
     }
 
+    // Bật loading
+      toggleLoading(endJobBtn, true, "Đang kết thúc...");
     // Chuyển đổi dữ liệu thành chuỗi URL-encoded
     let requestBody = `func=ketthuccongviec` +
         `&mts=${encodeURIComponent(mts)}` +
@@ -619,9 +650,13 @@ endJobButton.addEventListener("click", () => {
     .then(response => {
         if (!response.ok) throw new Error("Network response was not ok");
         endJobButton.disabled = false;
+        // Tắt loading khi xong
+        toggleLoading(endJobBtn, false);
         return response.json();
     })
     .then(endJobData => {
+        // Tắt loading khi xong
+        toggleLoading(endJobBtn, false);
         if (endJobData.status === "success") {
             clearJobAndAssetData();
             localStorage.setItem("jobFinished", "true");
@@ -1037,6 +1072,43 @@ function cancelJob(data) {
         #end-job-button:hover {
             background-color: #c82333;
         }
+        /* Trang trí cơ bản cho nút bấm */
+.action-btn {
+  padding: 10px 15px;
+  margin: 5px;
+  font-size: 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px; /* Khoảng cách giữa chữ và vòng xoay */
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+}
+
+/* Đổi màu khi nút bị khóa (đang loading) */
+.action-btn:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Định dạng vòng xoay */
+.loader {
+  border: 3px solid rgba(255, 255, 255, 0.3); /* Vòng nền mờ */
+  border-top: 3px solid #ffffff; /* Vòng quay màu trắng */
+  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  animation: spin 1s linear infinite;
+}
+
+/* Chuyển động xoay */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
     </style>
 </head>
 <body>
@@ -1062,7 +1134,10 @@ function cancelJob(data) {
     </div>
 
     <div class="button-container">
-        <button id="start-button">Bắt đầu quét</button>
+        <button id="start-button" class="action-btn">
+          <span class="btn-text">Bắt đầu quét</span>
+          <div class="loader" style="display: none;"></div>
+        </button>
         <button id="stop-button">Dừng quét</button>
     </div>
 
@@ -1138,8 +1213,15 @@ function cancelJob(data) {
         </tr>
     </table>
 
-    <button id="init-job-button">Khởi tạo công việc</button>
-    <button id="end-job-button">Kết thúc công việc</button>
+    <button id="init-job-button" class="action-btn">
+      <span class="btn-text">Khởi tạo công việc</span>
+      <div class="loader" style="display: none;"></div>
+    </button>
+    
+    <button id="end-job-button" class="action-btn">
+      <span class="btn-text">Kết thúc công việc</span>
+      <div class="loader" style="display: none;"></div>
+    </button>
 </body>
 
 </html>
